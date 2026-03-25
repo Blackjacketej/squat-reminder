@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Squat Reminder">
+<meta name="theme-color" content="#1a1a2e">
+<title>Squat Reminder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#1a1a2e;--card:#16213e;--accent:#e94560;--accent-glow:rgba(233,69,96,0.3);--green:#4ecca3;--green-glow:rgba(78,204,163,0.3);--text:#eee;--text-dim:#8892a4;--orange:#f5a623}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;min-height:100dvh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+.app{max-width:420px;margin:0 auto;padding:20px 16px;padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom))}
+.header{text-align:center;margin-bottom:24px}
+.header h1{font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.header h1 span{color:var(--accent)}
+.header .subtitle{font-size:13px;color:var(--text-dim);margin-top:4px}
+.ring-container{display:flex;justify-content:center;margin-bottom:28px}
+.ring-wrapper{position:relative;width:200px;height:200px}
+.ring-svg{width:200px;height:200px;transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:#2a2a4a;stroke-width:12}
+.ring-progress{fill:none;stroke:var(--accent);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset 0.6s ease,stroke 0.3s ease;filter:drop-shadow(0 0 6px var(--accent-glow))}
+.ring-progress.complete{stroke:var(--green);filter:drop-shadow(0 0 6px var(--green-glow))}
+.ring-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.ring-count{font-size:48px;font-weight:800;line-height:1}
+.ring-label{font-size:13px;color:var(--text-dim);margin-top:4px}
+.ring-total{font-size:12px;color:var(--text-dim);margin-top:2px}
+.card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:16px}
+.timer-card{text-align:center}
+.timer-label{font-size:13px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.timer-value{font-size:36px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:2px}
+.timer-outside{color:var(--orange)}
+.action-btn{display:block;width:100%;padding:18px;border:none;border-radius:16px;font-size:17px;font-weight:700;cursor:pointer;transition:transform 0.15s ease,box-shadow 0.15s ease;margin-bottom:16px}
+.action-btn:active{transform:scale(0.97)}
+.btn-do-squats{background:linear-gradient(135deg,var(--accent),#c73e54);color:#fff;box-shadow:0 4px 20px var(--accent-glow)}
+.btn-done{background:linear-gradient(135deg,var(--green),#3baa88);color:#fff;box-shadow:0 4px 20px var(--green-glow)}
+.btn-disabled{background:#2a2a4a;color:var(--text-dim);cursor:default;box-shadow:none}
+.stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{background:var(--card);border-radius:12px;padding:14px 10px;text-align:center}
+.stat-value{font-size:22px;font-weight:700}
+.stat-label{font-size:11px;color:var(--text-dim);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
+.hours-card .card-title{font-size:14px;font-weight:600;margin-bottom:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px}
+.hours-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.hour-dot{aspect-ratio:1;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;background:#2a2a4a;color:var(--text-dim);transition:all 0.3s ease}
+.hour-dot.completed{background:var(--green);color:#fff;box-shadow:0 2px 8px var(--green-glow)}
+.hour-dot.current{background:var(--accent);color:#fff;box-shadow:0 2px 8px var(--accent-glow);animation:pulse 2s ease-in-out infinite}
+.hour-dot.missed{background:#3a2a2a;color:#aa5555}
+.hour-dot.future{background:#222244;color:#555577}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.settings-toggle{display:block;width:100%;padding:14px;background:transparent;border:1px solid #2a2a4a;border-radius:12px;color:var(--text-dim);font-size:14px;cursor:pointer;margin-bottom:16px;text-align:center}
+.settings-panel{display:none;margin-bottom:16px}.settings-panel.open{display:block}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #2a2a4a}.setting-row:last-child{border-bottom:none}
+.setting-label{font-size:15px;font-weight:500}.setting-desc{font-size:12px;color:var(--text-dim);margin-top:2px}
+.setting-control select,.setting-control input[type="number"]{background:#2a2a4a;border:none;color:var(--text);padding:8px 12px;border-radius:8px;font-size:15px;width:80px;text-align:center}
+.notification-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:1000;justify-content:center;align-items:center;animation:fadeIn 0.3s ease}
+.notification-overlay.show{display:flex}
+.notification-box{background:var(--card);border-radius:24px;padding:40px 30px;text-align:center;max-width:320px;width:90%;animation:slideUp 0.4s ease}
+.notification-emoji{font-size:64px;margin-bottom:16px}
+.notification-title{font-size:24px;font-weight:800;margin-bottom:8px}
+.notification-subtitle{font-size:15px;color:var(--text-dim);margin-bottom:24px}
+.notification-btn{display:block;width:100%;padding:16px;border:none;border-radius:14px;font-size:17px;font-weight:700;cursor:pointer;margin-bottom:10px}
+.notification-btn.primary{background:linear-gradient(135deg,var(--green),#3baa88);color:#fff}
+.notification-btn.secondary{background:#2a2a4a;color:var(--text-dim)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.confetti-container{position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:2000;overflow:hidden}
+.confetti{position:absolute;width:10px;height:10px;border-radius:2px;animation:confettiFall 2.5s ease-out forwards}
+@keyframes confettiFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+.permission-banner{display:none;background:#2a2a4a;border-radius:12px;padding:14px 16px;margin-bottom:16px;text-align:center}
+.permission-banner.show{display:block}.permission-banner p{font-size:13px;color:var(--text-dim);margin-bottom:10px}
+.permission-banner button{background:var(--accent);color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header"><h1><span>Squat</span> Reminder</h1><div class="subtitle">10 squats every hour &middot; 7 AM &ndash; 7 PM</div></div>
+<div class="permission-banner" id="permissionBanner"><p>Enable notifications to get reminded even when the app is in the background.</p><button onclick="requestNotificationPermission()">Enable Notifications</button></div>
+<div class="ring-container"><div class="ring-wrapper"><svg class="ring-svg" viewBox="0 0 200 200"><circle class="ring-bg" cx="100" cy="100" r="85"/><circle class="ring-progress" id="ringProgress" cx="100" cy="100" r="85" stroke-dasharray="534.07" stroke-dashoffset="534.07"/></svg><div class="ring-center"><div class="ring-count" id="ringCount">0</div><div class="ring-label">sets done</div><div class="ring-total" id="ringTotal">of 12 today</div></div></div></div>
+<div class="card timer-card"><div class="timer-label" id="timerLabel">Next reminder in</div><div class="timer-value" id="timerValue">--:--</div></div>
+<button class="action-btn btn-do-squats" id="actionBtn" onclick="handleAction()">Do 10 Squats Now!</button>
+<div class="stats-row"><div class="stat-card"><div class="stat-value" id="statSquats">0</div><div class="stat-label">Squats</div></div><div class="stat-card"><div class="stat-value" id="statStreak">0</div><div class="stat-label">Day Streak</div></div><div class="stat-card"><div class="stat-value" id="statBest">0</div><div class="stat-label">Best Streak</div></div></div>
+<div class="card hours-card"><div class="card-title">Today's Hours</div><div class="hours-grid" id="hoursGrid"></div></div>
+<button class="settings-toggle" onclick="toggleSettings()">Settings</button>
+<div class="settings-panel card" id="settingsPanel">
+<div class="setting-row"><div><div class="setting-label">Start Hour</div><div class="setting-desc">When reminders begin</div></div><div class="setting-control"><select id="startHour" onchange="saveSettings()"></select></div></div>
+<div class="setting-row"><div><div class="setting-label">End Hour</div><div class="setting-desc">When reminders stop</div></div><div class="setting-control"><select id="endHour" onchange="saveSettings()"></select></div></div>
+<div class="setting-row"><div><div class="setting-label">Squats Per Set</div><div class="setting-desc">How many each hour</div></div><div class="setting-control"><input type="number" id="squatsPerSet" min="1" max="50" value="10" onchange="saveSettings()"></div></div>
+<div class="setting-row"><div><div class="setting-label">Sound Alert</div><div class="setting-desc">Play sound on reminder</div></div><div class="setting-control"><select id="soundEnabled" onchange="saveSettings()"><option value="1">On</option><option value="0">Off</option></select></div></div>
+</div></div>
+<div class="notification-overlay" id="notifOverlay"><div class="notification-box"><div class="notification-emoji">&#127947;&#65039;</div><div class="notification-title">Squat Time!</div><div class="notification-subtitle" id="notifSubtitle">Time to do 10 squats. Your body will thank you!</div><button class="notification-btn primary" onclick="completeFromNotif()">Done! &#10003;</button><button class="notification-btn secondary" onclick="dismissNotif()">Snooze 5 min</button></div></div>
+<div class="confetti-container" id="confettiContainer"></div>
+<script>
+const STORAGE_KEY='squatReminder';let state=loadState();let snoozeTimeout=null;let audioCtx=null;
+function defaultState(){return{startHour:7,endHour:19,squatsPerSet:10,soundEnabled:true,today:todayStr(),completedHours:[],totalSquats:0,streak:0,bestStreak:0,lastCompletedDate:null}}
+function todayStr(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function loadState(){try{const r=window.squatState;if(r)return r}catch(e){}return defaultState()}
+function saveState(){window.squatState=state;try{document.cookie=STORAGE_KEY+'='+encodeURIComponent(JSON.stringify(state))+';max-age=31536000;path=/;SameSite=Lax'}catch(e){}}
+function loadFromCookie(){try{const m=document.cookie.match(new RegExp(STORAGE_KEY+'=([^;]+)'));if(m){const p=JSON.parse(decodeURIComponent(m[1]));if(p&&p.startHour!==undefined)return p}}catch(e){}return null}
+const cookieState=loadFromCookie();if(cookieState)state=cookieState;
+function checkNewDay(){const today=todayStr();if(state.today!==today){const y=new Date();y.setDate(y.getDate()-1);const ys=y.getFullYear()+'-'+String(y.getMonth()+1).padStart(2,'0')+'-'+String(y.getDate()).padStart(2,'0');if(state.lastCompletedDate===ys&&state.completedHours.length>0)state.streak++;else if(state.lastCompletedDate!==today)state.streak=0;state.bestStreak=Math.max(state.bestStreak,state.streak);state.today=today;state.completedHours=[];state.totalSquats=0;saveState()}}
+function initSettings(){const s=document.getElementById('startHour'),e=document.getElementById('endHour');s.innerHTML='';e.innerHTML='';for(let h=5;h<=22;h++){const l=formatHour(h);s.innerHTML+='<option value="'+h+'"'+(h===state.startHour?' selected':'')+'>'+l+'</option>';e.innerHTML+='<option value="'+h+'"'+(h===state.endHour?' selected':'')+'>'+l+'</option>'}document.getElementById('squatsPerSet').value=state.squatsPerSet;document.getElementById('soundEnabled').value=state.soundEnabled?'1':'0'}
+function formatHour(h){if(h===0||h===24)return'12 AM';if(h===12)return'12 PM';return h<12?h+' AM':(h-12)+' PM'}
+function saveSettings(){state.startHour=parseInt(document.getElementById('startHour').value);state.endHour=parseInt(document.getElementById('endHour').value);state.squatsPerSet=parseInt(document.getElementById('squatsPerSet').value)||10;state.soundEnabled=document.getElementById('soundEnabled').value==='1';saveState();updateUI()}
+function toggleSettings(){document.getElementById('settingsPanel').classList.toggle('open')}
+function playReminderSound(){if(!state.soundEnabled)return;try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const n=audioCtx.currentTime;[523.25,659.25,783.99].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.3,n+i*0.15);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.15+0.4);o.connect(g);g.connect(audioCtx.destination);o.start(n+i*0.15);o.stop(n+i*0.15+0.4)})}catch(e){}}
+function playSuccessSound(){if(!state.soundEnabled)return;try{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();const n=audioCtx.currentTime;[523.25,659.25,783.99,1046.50].forEach((f,i)=>{const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0.25,n+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.1+0.3);o.connect(g);g.connect(audioCtx.destination);o.start(n+i*0.1);o.stop(n+i*0.1+0.3)})}catch(e){}}
+function vibrate(){if(navigator.vibrate)navigator.vibrate([200,100,200,100,300])}
+function requestNotificationPermission(){if('Notification' in window)Notification.requestPermission().then(p=>{document.getElementById('permissionBanner').classList.toggle('show',p!=='granted')})}
+function sendNotification(){if('Notification' in window&&Notification.permission==='granted'){try{new Notification('Squat Time!',{body:'Time to do '+state.squatsPerSet+' squats! Your body will thank you.',tag:'squat-reminder',renotify:true})}catch(e){}}}
+let lastReminderHour=-1;
+function checkReminder(){const n=new Date(),h=n.getHours(),m=n.getMinutes();const active=h>=state.startHour&&h<state.endHour;const top=m===0;const done=state.completedHours.includes(h);if(active&&top&&!done&&lastReminderHour!==h){lastReminderHour=h;triggerReminder()}}
+function triggerReminder(){vibrate();playReminderSound();sendNotification();showNotifOverlay()}
+function showNotifOverlay(){document.getElementById('notifSubtitle').textContent='Time to do '+state.squatsPerSet+' squats. Your body will thank you!';document.getElementById('notifOverlay').classList.add('show')}
+function completeFromNotif(){document.getElementById('notifOverlay').classList.remove('show');completeSet()}
+function dismissNotif(){document.getElementById('notifOverlay').classList.remove('show');if(snoozeTimeout)clearTimeout(snoozeTimeout);snoozeTimeout=setTimeout(()=>triggerReminder(),300000)}
+function completeSet(){const n=new Date(),h=n.getHours();if(!state.completedHours.includes(h))state.completedHours.push(h);state.totalSquats+=state.squatsPerSet;state.lastCompletedDate=todayStr();if(state.completedHours.length===1&&state.streak===0)state.streak=1;state.bestStreak=Math.max(state.bestStreak,state.streak);saveState();playSuccessSound();vibrate();updateUI();const t=state.endHour-state.startHour;if(state.completedHours.length>=t)celebrate();else miniCelebrate()}
+function handleAction(){const n=new Date(),h=n.getHours();if(h>=state.startHour&&h<state.endHour)completeSet()}
+function miniCelebrate(){spawnConfetti(15)}function celebrate(){spawnConfetti(60)}
+function spawnConfetti(count){const c=document.getElementById('confettiContainer'),colors=['#e94560','#4ecca3','#f5a623','#7b68ee','#ff6b9d','#00d2ff'];for(let i=0;i<count;i++){const e=document.createElement('div');e.className='confetti';e.style.left=Math.random()*100+'%';e.style.background=colors[Math.floor(Math.random()*colors.length)];e.style.animationDelay=Math.random()*0.8+'s';e.style.width=(6+Math.random()*8)+'px';e.style.height=(6+Math.random()*8)+'px';c.appendChild(e);setTimeout(()=>e.remove(),3000)}}
+function updateUI(){checkNewDay();const n=new Date(),h=n.getHours(),m=n.getMinutes(),s=n.getSeconds();const active=h>=state.startHour&&h<state.endHour;const total=state.endHour-state.startHour;const done=state.completedHours.length;
+const circ=2*Math.PI*85,prog=total>0?done/total:0,off=circ*(1-prog);const ring=document.getElementById('ringProgress');ring.style.strokeDashoffset=off;ring.classList.toggle('complete',done>=total);
+document.getElementById('ringCount').textContent=done;document.getElementById('ringTotal').textContent='of '+total+' today';
+const tl=document.getElementById('timerLabel'),tv=document.getElementById('timerValue');
+if(!active){if(h<state.startHour){const mu=(state.startHour-h-1)*60+(60-m),hh=Math.floor(mu/60),mm=mu%60;tl.textContent='Active hours start in';tv.textContent=hh+'h '+String(mm).padStart(2,'0')+'m';tv.className='timer-value timer-outside'}else{tl.textContent='Done for today!';tv.textContent='Rest up';tv.className='timer-value timer-outside'}}else{const ml=60-m,sl=60-s;tl.textContent=state.completedHours.includes(h)?'Next reminder in':'Squats due! Next check in';tv.textContent=String(ml-1).padStart(2,'0')+':'+String(sl===60?0:sl).padStart(2,'0');tv.className='timer-value'}
+const btn=document.getElementById('actionBtn');if(!active){btn.textContent=h>=state.endHour?'All Done for Today!':'Waiting for Active Hours...';btn.className='action-btn btn-disabled'}else if(state.completedHours.includes(h)){btn.textContent='Done This Hour \u2713';btn.className='action-btn btn-done'}else{btn.textContent='Do '+state.squatsPerSet+' Squats Now!';btn.className='action-btn btn-do-squats'}
+document.getElementById('statSquats').textContent=state.totalSquats;document.getElementById('statStreak').textContent=state.streak;document.getElementById('statBest').textContent=state.bestStreak;
+const grid=document.getElementById('hoursGrid');grid.innerHTML='';for(let hh=state.startHour;hh<state.endHour;hh++){const d=document.createElement('div');d.className='hour-dot';d.textContent=formatHour(hh).replace(' AM','a').replace(' PM','p');if(state.completedHours.includes(hh))d.classList.add('completed');else if(hh===h&&active)d.classList.add('current');else if(hh<h)d.classList.add('missed');else d.classList.add('future');grid.appendChild(d)}
+document.querySelector('.header .subtitle').textContent=state.squatsPerSet+' squats every hour \u00b7 '+formatHour(state.startHour)+' \u2013 '+formatHour(state.endHour);
+if('Notification' in window&&Notification.permission==='default')document.getElementById('permissionBanner').classList.add('show')}
+initSettings();updateUI();setInterval(()=>{updateUI();checkReminder()},1000);setInterval(checkReminder,30000);
+</script>
+</body>
+</html>
